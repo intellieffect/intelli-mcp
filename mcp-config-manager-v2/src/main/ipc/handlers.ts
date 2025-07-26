@@ -61,8 +61,14 @@ const setupFileHandlers = (): void => {
   // Read file
   ipcMain.handle('file:read', async (event, filePath: string) => {
     try {
+      logger.info('File read request for:', filePath);
+      
       // Validate file path for security
-      if (!validateFilePath(filePath)) {
+      const isValidPath = validateFilePath(filePath);
+      logger.info('Path validation result:', isValidPath);
+      
+      if (!isValidPath) {
+        logger.error('Path validation failed for:', filePath);
         throw new Error('Invalid file path');
       }
 
@@ -288,11 +294,95 @@ const setupConfigurationHandlers = (): void => {
     try {
       logger.debug('Validating configuration');
       
-      // TODO: Implement actual configuration validation
+      const result = await claudeConfigService.validateConfig(config as any);
       
-      return { success: true, data: { isValid: true, errors: [], warnings: [] } };
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      return { success: true, data: result.value };
     } catch (error) {
       logger.error('Configuration validation failed:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Create configuration backup
+  ipcMain.handle('config:createBackup', async () => {
+    try {
+      logger.info('Creating configuration backup');
+      
+      const result = await claudeConfigService.createBackup();
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      logger.info('Backup created successfully:', result.value);
+      return { success: true, data: result.value };
+    } catch (error) {
+      logger.error('Configuration backup failed:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Restore configuration from backup
+  ipcMain.handle('config:restoreFromBackup', async (event, backupPath: string) => {
+    try {
+      // Validate backup file path for security
+      if (!validateFilePath(backupPath)) {
+        throw new Error('Invalid backup file path');
+      }
+
+      logger.info('Restoring configuration from backup:', backupPath);
+      
+      const result = await claudeConfigService.restoreFromBackup(backupPath);
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      logger.info('Configuration restored successfully from backup');
+      return { success: true };
+    } catch (error) {
+      logger.error('Configuration restore failed:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get list of available backups
+  ipcMain.handle('config:getBackupList', async () => {
+    try {
+      logger.debug('Getting list of available backups');
+      
+      const result = await claudeConfigService.getBackupList();
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      return { success: true, data: result.value };
+    } catch (error) {
+      logger.error('Get backup list failed:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Write configuration atomically (safer alternative to regular save)
+  ipcMain.handle('config:writeAtomic', async (event, config: unknown) => {
+    try {
+      logger.info('Writing configuration atomically');
+      
+      const result = await claudeConfigService.writeConfigAtomic(config as any);
+      
+      if (result.isErr()) {
+        throw result.error;
+      }
+      
+      logger.info('Configuration written atomically');
+      return { success: true };
+    } catch (error) {
+      logger.error('Atomic configuration write failed:', error);
       return { success: false, error: (error as Error).message };
     }
   });

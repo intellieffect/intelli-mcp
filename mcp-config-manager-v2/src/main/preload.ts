@@ -31,6 +31,7 @@ const electronAPI = {
   updateServer: (name: string, server: unknown) => ipcRenderer.invoke('config:updateServer', name, server),
   removeServer: (name: string) => ipcRenderer.invoke('config:removeServer', name),
   getConfigPath: () => ipcRenderer.invoke('config:getPath'),
+  createBackup: () => ipcRenderer.invoke('config:createBackup'),
   
   // System operations
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),

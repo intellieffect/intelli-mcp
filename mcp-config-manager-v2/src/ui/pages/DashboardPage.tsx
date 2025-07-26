@@ -9,27 +9,13 @@ import {
   CardContent,
   Typography,
 } from '@mui/material';
-import { ClaudeDesktopStatus, ClaudeDesktopServerList } from '@ui/components';
+import { JsonConfigEditor } from '@ui/components';
 
 const DashboardPage: React.FC = () => {
   return (
     <Box>
-      {/* Claude Desktop Configuration Status */}
-      <Box>
-        <ClaudeDesktopStatus />
-      </Box>
-
-      {/* Claude Desktop MCP Servers */}
-      <Box mt={3}>
-        <Card>
-          <CardContent>
-            <Typography variant="h5" gutterBottom>
-              Claude Desktop MCP Servers
-            </Typography>
-            <ClaudeDesktopServerList />
-          </CardContent>
-        </Card>
-      </Box>
+      {/* JSON Config Editor */}
+      <JsonConfigEditor />
     </Box>
   );
 };

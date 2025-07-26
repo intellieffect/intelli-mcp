@@ -11,7 +11,18 @@ let logger: Logger | null = null;
 
 const ensureLogger = (): Logger => {
   if (!logger) {
-    logger = getLogger();
+    try {
+      logger = getLogger();
+    } catch (error) {
+      // If logger fails to initialize, create a console-based fallback
+      console.error('Failed to initialize logger:', error);
+      logger = {
+        info: (...args: any[]) => console.log('[Security INFO]', ...args),
+        warn: (...args: any[]) => console.warn('[Security WARN]', ...args),
+        error: (...args: any[]) => console.error('[Security ERROR]', ...args),
+        debug: (...args: any[]) => console.debug('[Security DEBUG]', ...args),
+      } as Logger;
+    }
   }
   return logger;
 };
@@ -44,7 +55,7 @@ const setupContentSecurityPolicy = (): void => {
           [
             "default-src 'self'",
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required for React dev tools
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com",
             "font-src 'self' https://fonts.gstatic.com data:",
             "img-src 'self' data: https:",
             "connect-src 'self' ws: wss:",
@@ -204,21 +215,86 @@ export const sanitizeInput = (input: string): string => {
  * Validate file paths to prevent directory traversal
  */
 export const validateFilePath = (filePath: string): boolean => {
-  // Normalize the path
-  const path = require('path');
-  const normalizedPath = path.normalize(filePath);
-  
-  // Check for directory traversal attempts
-  if (normalizedPath.includes('..') || normalizedPath.startsWith('/')) {
-    ensureLogger().warn('Potential directory traversal attempt:', filePath);
+  try {
+    // Normalize the path
+    const path = require('path');
+    const os = require('os');
+    const normalizedPath = path.normalize(filePath);
+    
+    // Log for debugging
+    console.log('[Security] Validating file path:', {
+      original: filePath,
+      normalized: normalizedPath,
+      homedir: os.homedir(),
+      isAbsolute: path.isAbsolute(normalizedPath)
+    });
+    
+    // Check for null bytes first (most critical security check)
+    if (normalizedPath.includes('\0')) {
+      console.warn('[Security] Null byte in file path:', filePath);
+      return false;
+    }
+    
+    // Check for directory traversal attempts (but allow absolute paths)
+    if (normalizedPath.includes('..')) {
+      console.warn('[Security] Potential directory traversal attempt:', filePath);
+      return false;
+    }
+    
+    // Special handling for absolute paths
+    if (!path.isAbsolute(normalizedPath)) {
+      console.warn('[Security] Path is not absolute, rejecting:', normalizedPath);
+      return false;
+    }
+    
+    // Allow specific safe paths
+    const safeBasePaths = [
+      os.homedir(),
+      '/Users',
+      '/home',
+      path.join(os.homedir(), 'Library', 'Application Support', 'Claude'),
+      path.join(os.homedir(), '.config', 'claude'),
+    ];
+    
+    // Special case for Claude config file on macOS
+    if (process.platform === 'darwin') {
+      safeBasePaths.push(path.join(os.homedir(), 'Library', 'Application Support'));
+    }
+    
+    // Log safe paths for debugging
+    console.log('[Security] Safe base paths:', safeBasePaths);
+    
+    // Check if the path starts with any safe base path
+    let isInSafePath = false;
+    for (const safePath of safeBasePaths) {
+      // Normalize the safe path for consistent comparison
+      const normalizedSafePath = path.normalize(safePath);
+      const matches = normalizedPath.startsWith(normalizedSafePath);
+      
+      console.log('[Security] Comparing:', {
+        normalizedPath,
+        normalizedSafePath,
+        matches
+      });
+      
+      if (matches) {
+        console.log('[Security] Path matches safe path:', safePath);
+        isInSafePath = true;
+        break;
+      }
+    }
+    
+    console.log('[Security] Is in safe path:', isInSafePath);
+    
+    if (!isInSafePath) {
+      console.warn('[Security] File path outside safe directories:', filePath);
+      return false;
+    }
+    
+    console.log('[Security] Path validation passed');
+    return true;
+  } catch (error) {
+    console.error('[Security] Error during path validation:', error);
     return false;
   }
-  
-  // Check for null bytes
-  if (normalizedPath.includes('\0')) {
-    ensureLogger().warn('Null byte in file path:', filePath);
-    return false;
-  }
-  
-  return true;
 };

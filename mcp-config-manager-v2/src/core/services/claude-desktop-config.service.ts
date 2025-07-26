@@ -251,4 +251,335 @@ export class ClaudeDesktopConfigService {
   getConfigFilePath(): string {
     return this.configPath;
   }
+
+  /**
+   * Create a backup of the current configuration
+   */
+  async createBackup(): Promise<Result<string>> {
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupDir = path.join(path.dirname(this.configPath), 'backups');
+      const backupPath = path.join(backupDir, `claude_desktop_config_${timestamp}.json`);
+      
+      // Ensure backup directory exists
+      await fs.mkdir(backupDir, { recursive: true });
+      
+      // Check if original config file exists
+      try {
+        await fs.access(this.configPath);
+        // File exists, copy it
+        await fs.copyFile(this.configPath, backupPath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          // File doesn't exist, create empty config backup
+          const emptyConfig = { mcpServers: {} };
+          await fs.writeFile(backupPath, JSON.stringify(emptyConfig, null, 2), 'utf-8');
+        } else {
+          throw error;
+        }
+      }
+      
+      return Result.ok(backupPath);
+    } catch (error) {
+      return Result.err(
+        new AppError(
+          'BACKUP_CREATE_ERROR',
+          `Failed to create backup: ${(error as Error).message}`,
+          error as Error
+        )
+      );
+    }
+  }
+
+  /**
+   * Restore configuration from a backup file
+   */
+  async restoreFromBackup(backupPath: string): Promise<Result<void>> {
+    try {
+      // Validate backup file exists and is readable
+      await fs.access(backupPath, fs.constants.R_OK);
+      
+      // Create a temporary backup of current config
+      const tempBackupPath = `${this.configPath}.temp`;
+      try {
+        await fs.copyFile(this.configPath, tempBackupPath);
+      } catch {
+        // Current file doesn't exist, that's OK
+      }
+      
+      try {
+        // Restore from backup
+        await fs.copyFile(backupPath, this.configPath);
+        
+        // Verify the restored config is valid JSON
+        const restoredContent = await fs.readFile(this.configPath, 'utf-8');
+        JSON.parse(restoredContent); // This will throw if invalid JSON
+        
+        // Clean up temp backup
+        try {
+          await fs.unlink(tempBackupPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+        
+        return Result.ok(undefined);
+      } catch (error) {
+        // Restore failed, try to recover from temp backup
+        try {
+          await fs.copyFile(tempBackupPath, this.configPath);
+        } catch {
+          // Recovery also failed, but we still need to report the original error
+        }
+        throw error;
+      }
+    } catch (error) {
+      return Result.err(
+        new AppError(
+          'BACKUP_RESTORE_ERROR',
+          `Failed to restore from backup: ${(error as Error).message}`,
+          error as Error
+        )
+      );
+    }
+  }
+
+  /**
+   * Write configuration file atomically (prevents corruption)
+   */
+  async writeConfigAtomic(config: ClaudeDesktopConfig): Promise<Result<void>> {
+    const tempPath = `${this.configPath}.tmp`;
+    const lockPath = `${this.configPath}.lock`;
+    
+    try {
+      // Create lock file to prevent concurrent writes
+      try {
+        await fs.writeFile(lockPath, process.pid.toString(), { flag: 'wx' });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+          return Result.err(
+            new AppError('CONFIG_LOCKED', 'Configuration file is being modified by another process')
+          );
+        }
+        throw error;
+      }
+      
+      try {
+        // Ensure directory exists
+        const configDir = path.dirname(this.configPath);
+        await fs.mkdir(configDir, { recursive: true });
+        
+        // Write to temporary file first
+        const configData = JSON.stringify(config, null, 2);
+        await fs.writeFile(tempPath, configData, 'utf-8');
+        
+        // Verify the written file is valid JSON
+        const writtenContent = await fs.readFile(tempPath, 'utf-8');
+        JSON.parse(writtenContent); // This will throw if invalid JSON
+        
+        // Atomic move (rename is atomic operation on most filesystems)
+        await fs.rename(tempPath, this.configPath);
+        
+        return Result.ok(undefined);
+      } finally {
+        // Always clean up lock and temp files
+        try {
+          await fs.unlink(lockPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+        
+        try {
+          await fs.unlink(tempPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    } catch (error) {
+      return Result.err(
+        new AppError(
+          'CONFIG_WRITE_ERROR',
+          `Failed to write configuration atomically: ${(error as Error).message}`,
+          error as Error
+        )
+      );
+    }
+  }
+
+  /**
+   * Validate configuration structure and content
+   */
+  async validateConfig(config: ClaudeDesktopConfig): Promise<Result<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+  }>> {
+    try {
+      const errors: string[] = [];
+      const warnings: string[] = [];
+      
+      // Basic structure validation
+      if (!config || typeof config !== 'object') {
+        errors.push('Configuration must be a valid object');
+        return Result.ok({ isValid: false, errors, warnings });
+      }
+      
+      if (!config.mcpServers || typeof config.mcpServers !== 'object') {
+        errors.push('mcpServers field is missing or invalid');
+        return Result.ok({ isValid: false, errors, warnings });
+      }
+      
+      // Validate each server configuration
+      const serverNames = Object.keys(config.mcpServers);
+      const duplicateNames = serverNames.filter((name, index) => 
+        serverNames.indexOf(name) !== index
+      );
+      
+      if (duplicateNames.length > 0) {
+        errors.push(`Duplicate server names found: ${duplicateNames.join(', ')}`);
+      }
+      
+      for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
+        // Server name validation
+        if (!serverName || typeof serverName !== 'string') {
+          errors.push('Server name must be a non-empty string');
+          continue;
+        }
+        
+        if (!/^[a-zA-Z0-9_-]+$/.test(serverName)) {
+          warnings.push(`Server name '${serverName}' contains special characters`);
+        }
+        
+        // Command validation
+        if (!serverConfig.command || typeof serverConfig.command !== 'string') {
+          errors.push(`Server '${serverName}': command is required and must be a string`);
+          continue;
+        }
+        
+        // Args validation
+        if (serverConfig.args && !Array.isArray(serverConfig.args)) {
+          errors.push(`Server '${serverName}': args must be an array`);
+        }
+        
+        if (serverConfig.args) {
+          for (const arg of serverConfig.args) {
+            if (typeof arg !== 'string') {
+              errors.push(`Server '${serverName}': all arguments must be strings`);
+              break;
+            }
+          }
+        }
+        
+        // Environment variables validation
+        if (serverConfig.env) {
+          if (typeof serverConfig.env !== 'object' || Array.isArray(serverConfig.env)) {
+            errors.push(`Server '${serverName}': env must be an object`);
+          } else {
+            for (const [key, value] of Object.entries(serverConfig.env)) {
+              if (typeof key !== 'string' || typeof value !== 'string') {
+                errors.push(`Server '${serverName}': environment variables must be strings`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      return Result.ok({
+        isValid: errors.length === 0,
+        errors,
+        warnings,
+      });
+    } catch (error) {
+      return Result.err(
+        new AppError(
+          'CONFIG_VALIDATION_ERROR',
+          `Failed to validate configuration: ${(error as Error).message}`,
+          error as Error
+        )
+      );
+    }
+  }
+
+  /**
+   * Get list of available backup files
+   */
+  async getBackupList(): Promise<Result<Array<{
+    path: string;
+    timestamp: string;
+    size: number;
+  }>>> {
+    try {
+      const backupDir = path.join(path.dirname(this.configPath), 'backups');
+      
+      try {
+        const files = await fs.readdir(backupDir);
+        const backups = [];
+        
+        for (const file of files) {
+          if (file.startsWith('claude_desktop_config_') && file.endsWith('.json')) {
+            const filePath = path.join(backupDir, file);
+            try {
+              const stats = await fs.stat(filePath);
+              
+              // Extract timestamp from filename
+              const timestampMatch = file.match(/claude_desktop_config_(.+)\.json$/);
+              const timestamp = timestampMatch ? timestampMatch[1].replace(/-/g, ':') : '';
+              
+              backups.push({
+                path: filePath,
+                timestamp,
+                size: stats.size,
+              });
+            } catch {
+              // Skip files that can't be read
+              continue;
+            }
+          }
+        }
+        
+        // Sort by timestamp (newest first)
+        backups.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        
+        return Result.ok(backups);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          // Backup directory doesn't exist
+          return Result.ok([]);
+        }
+        throw error;
+      }
+    } catch (error) {
+      return Result.err(
+        new AppError(
+          'BACKUP_LIST_ERROR',
+          `Failed to get backup list: ${(error as Error).message}`,
+          error as Error
+        )
+      );
+    }
+  }
+
+  /**
+   * Override writeConfig to use atomic writing
+   */
+  async writeConfig(config: ClaudeDesktopConfig): Promise<Result<void>> {
+    // First validate the configuration
+    const validationResult = await this.validateConfig(config);
+    if (validationResult.isErr()) {
+      return validationResult;
+    }
+    
+    const { isValid, errors } = validationResult.value;
+    if (!isValid) {
+      return Result.err(
+        new AppError(
+          'CONFIG_INVALID',
+          `Configuration validation failed: ${errors.join(', ')}`
+        )
+      );
+    }
+    
+    // Use atomic writing
+    return this.writeConfigAtomic(config);
+  }
 }

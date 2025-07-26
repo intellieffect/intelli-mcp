@@ -44,6 +44,8 @@ import {
   claudeDesktopActions,
   selectClaudeDesktopLoading,
 } from '../stores/claude-desktop-store';
+import { ServerEditDialog } from './ServerEditDialog';
+import { claudeDesktopIPCService } from '../services/claude-desktop-ipc.service';
 
 interface ServerDetailsProps {
   serverName: string;
@@ -52,9 +54,10 @@ interface ServerDetailsProps {
     args?: string[];
     env?: Record<string, string>;
   };
+  onEdit: (serverName: string) => void;
 }
 
-const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => {
+const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server, onEdit }) => {
   const [expanded, setExpanded] = useState(false);
 
   const handleCopy = (text: string) => {
@@ -74,6 +77,21 @@ const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => 
           zIndex: 1
         }}
       >
+        <Tooltip title="Edit server">
+          <IconButton 
+            size="small"
+            onClick={() => onEdit(serverName)}
+            sx={{ 
+              bgcolor: 'background.paper',
+              boxShadow: 1,
+              '&:hover': {
+                bgcolor: 'action.hover'
+              }
+            }}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         <Tooltip title="Copy command">
           <IconButton 
             size="small"
@@ -106,7 +124,7 @@ const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => 
         </Tooltip>
       </Box>
 
-      <ListItem sx={{ pr: 10 }}> {/* Add right padding to avoid button overlap */}
+      <ListItem sx={{ pr: 12 }}> {/* Add right padding to avoid button overlap */}
         <ListItemText
           primary={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -251,11 +269,41 @@ export const ClaudeDesktopServerList: React.FC = () => {
   const servers = useAppSelector(selectClaudeDesktopServers);
   const loading = useAppSelector(selectClaudeDesktopLoading);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingServerName, setEditingServerName] = useState<string | undefined>(undefined);
 
   const serverEntries = Object.entries(servers);
   const filteredServers = serverEntries.filter(([name]) => 
     name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Handle edit server
+  const handleEditServer = (serverName: string) => {
+    setEditingServerName(serverName || undefined);
+    setEditDialogOpen(true);
+  };
+
+  // Handle close edit dialog
+  const handleCloseEditDialog = async () => {
+    setEditDialogOpen(false);
+    setEditingServerName(undefined);
+    
+    // Reload configuration to ensure UI is up to date
+    try {
+      dispatch(claudeDesktopActions.setLoading(true));
+      const result = await claudeDesktopIPCService.loadConfiguration();
+      
+      if (result.kind === 'success') {
+        dispatch(claudeDesktopActions.setConfig(result.value));
+      } else {
+        console.error('Failed to reload configuration:', result.error.message);
+      }
+    } catch (error) {
+      console.error('Error reloading configuration:', error);
+    } finally {
+      dispatch(claudeDesktopActions.setLoading(false));
+    }
+  };
 
   if (loading) {
     return (
@@ -275,6 +323,15 @@ export const ClaudeDesktopServerList: React.FC = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           sx={{ flexGrow: 1 }}
         />
+        <Button
+          startIcon={<AddIcon />}
+          variant="contained"
+          size="small"
+          onClick={() => handleEditServer('')}
+          disabled={loading}
+        >
+          Add Server
+        </Button>
         <Typography variant="body2" color="text.secondary">
           {filteredServers.length} of {serverEntries.length} servers
         </Typography>
@@ -295,10 +352,18 @@ export const ClaudeDesktopServerList: React.FC = () => {
               key={serverName}
               serverName={serverName}
               server={server}
+              onEdit={handleEditServer}
             />
           ))}
         </List>
       )}
+      
+      {/* Server Edit Dialog */}
+      <ServerEditDialog
+        open={editDialogOpen}
+        onClose={handleCloseEditDialog}
+        serverName={editingServerName}
+      />
     </Box>
   );
 };
