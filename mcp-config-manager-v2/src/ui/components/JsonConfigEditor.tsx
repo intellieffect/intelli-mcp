@@ -135,7 +135,7 @@ export const JsonConfigEditor: React.FC = () => {
 
   if (loading) {
     return (
-      <Box p={2}>
+      <Box>
         <Typography>Loading configuration...</Typography>
         <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
           <Typography variant="caption" component="div">
@@ -159,28 +159,31 @@ export const JsonConfigEditor: React.FC = () => {
   }
 
   return (
-    <Box p={2}>
-      {/* 상단 버튼들 */}
-      <Box display="flex" gap={1} mb={2} alignItems="center">
-        <Typography variant="h6" flexGrow={1}>
-          claude_desktop_config.json
-        </Typography>
-        {configPath && (
-          <Typography variant="caption" color="text.secondary">
-            {configPath}
+    <Box>
+      {/* Config file info and actions */}
+      <Box display="flex" gap={2} mb={3} alignItems="flex-start">
+        <Box flexGrow={1}>
+          <Typography variant="h5" sx={{ mb: 0.5, fontWeight: 500 }}>
+            claude_desktop_config.json
           </Typography>
-        )}
+          {configPath && (
+            <Typography variant="body2" color="text.secondary">
+              {configPath}
+            </Typography>
+          )}
+        </Box>
         
         {!isEditing ? (
           <Button
             startIcon={<EditIcon />}
             variant="contained"
             onClick={handleEdit}
+            size="large"
           >
             Edit
           </Button>
         ) : (
-          <>
+          <Box display="flex" gap={1}>
             <Button
               startIcon={<FormatIcon />}
               variant="outlined"
@@ -204,34 +207,41 @@ export const JsonConfigEditor: React.FC = () => {
             >
               {saving ? 'Saving...' : 'Save'}
             </Button>
-          </>
+          </Box>
         )}
       </Box>
 
-      {/* 에러 표시 */}
+      {/* Error display */}
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      {/* JSON 에디터 */}
-      <Paper variant="outlined" sx={{ p: 0 }}>
+      {/* JSON Editor */}
+      <Paper 
+        variant="outlined" 
+        sx={{ 
+          p: 0,
+          borderRadius: 2,
+          overflow: 'hidden'
+        }}
+      >
         <textarea
           value={jsonText}
           onChange={(e) => setJsonText(e.target.value)}
           readOnly={!isEditing}
           style={{
             width: '100%',
-            height: '600px',
+            height: '500px',
             border: 'none',
             outline: 'none',
-            padding: '16px',
+            padding: '24px',
             fontFamily: 'Monaco, Consolas, "Courier New", monospace',
             fontSize: '14px',
-            lineHeight: '1.5',
+            lineHeight: '1.6',
             resize: 'vertical',
-            backgroundColor: isEditing ? '#fff' : '#f5f5f5',
+            backgroundColor: isEditing ? '#fff' : '#f8f9fa',
             color: isEditing ? '#000' : '#666',
           }}
           placeholder="Loading configuration..."

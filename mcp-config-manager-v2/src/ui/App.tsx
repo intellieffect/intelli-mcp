@@ -7,9 +7,8 @@ import {
   ThemeProvider,
   createTheme,
   CssBaseline,
-  Box,
 } from '@mui/material';
-import { JsonConfigEditor } from './components';
+import { JsonConfigEditor, MinimalLayout } from './components';
 
 // Simple theme
 const theme = createTheme({
@@ -28,12 +27,9 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ 
-        minHeight: '100vh',
-        backgroundColor: 'background.default'
-      }}>
+      <MinimalLayout>
         <JsonConfigEditor />
-      </Box>
+      </MinimalLayout>
     </ThemeProvider>
   );
 };
