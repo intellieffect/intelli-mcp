@@ -11,21 +11,14 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { Provider } from 'react-redux';
-import { Navigation } from '@ui/components';
 import { useAppSelector } from '@ui/stores';
 import { initializeStore } from '@ui/stores';
 import { Container } from '@core/infrastructure/di/container';
 import type { IServerService } from '@core/application/services/server-service';
 import type { IConfigurationService } from '@core/application/services/configuration-service';
 
-// Route components (placeholders for now)
+// Route components
 const DashboardPage = React.lazy(() => import('@ui/pages/DashboardPage'));
-const ServersPage = React.lazy(() => import('@ui/pages/ServersPage'));
-const ConfigurationsPage = React.lazy(() => import('@ui/pages/ConfigurationsPage'));
-const MonitoringPage = React.lazy(() => import('@ui/pages/MonitoringPage'));
-const HelpPage = React.lazy(() => import('@ui/pages/HelpPage'));
-const SettingsPage = React.lazy(() => import('@ui/pages/SettingsPage'));
-const NotFoundPage = React.lazy(() => import('@ui/pages/NotFoundPage'));
 
 // Theme configuration
 const createAppTheme = (mode: 'light' | 'dark', systemPrefersDark: boolean) => {
@@ -131,45 +124,10 @@ const createAppTheme = (mode: 'light' | 'dark', systemPrefersDark: boolean) => {
   });
 };
 
-// Router component
-interface RouterProps {
-  readonly currentPath: string;
-}
-
-const Router: React.FC<RouterProps> = ({ currentPath }) => {
-  const renderPage = () => {
-    switch (currentPath) {
-      case '/':
-        return <DashboardPage />;
-      case '/servers':
-        return <ServersPage />;
-      case '/configurations':
-        return <ConfigurationsPage />;
-      case '/monitoring':
-        return <MonitoringPage />;
-      case '/help':
-      case '/help/docs':
-      case '/help/about':
-        return <HelpPage />;
-      case '/settings':
-        return <SettingsPage />;
-      default:
-        return <NotFoundPage />;
-    }
-  };
-
-  return (
-    <React.Suspense fallback={<div>Loading...</div>}>
-      {renderPage()}
-    </React.Suspense>
-  );
-};
 
 // Main app content component
 const AppContent: React.FC = () => {
-  const [currentPath, setCurrentPath] = useState('/');
   const theme = useAppSelector(state => state.ui.theme);
-  const sidebarCollapsed = useAppSelector(state => state.ui.layout.sidebarCollapsed);
   
   // System theme detection
   const systemPrefersDark = useMediaQuery('(prefers-color-scheme: dark)');
@@ -183,59 +141,21 @@ const AppContent: React.FC = () => {
     return createAppTheme(resolvedTheme as 'light' | 'dark', systemPrefersDark);
   }, [theme, systemPrefersDark]);
 
-  // Handle navigation
-  const handleNavigate = (path: string) => {
-    setCurrentPath(path);
-  };
-
-  // Layout dimensions
-  const drawerWidth = sidebarCollapsed ? 64 : 280;
-
   return (
     <ThemeProvider theme={appTheme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        {/* Navigation */}
-        <Navigation
-          currentPath={currentPath}
-          onNavigate={handleNavigate}
-        />
-
-        {/* Main Content */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 3,
-            pb: 6, // Extra padding at bottom for better scrolling experience
-            mt: 8, // AppBar height
-            ml: { xs: 0, md: `${drawerWidth}px` },
-            height: '100vh',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            // Smooth scrolling
-            scrollBehavior: 'smooth',
-            // Better scrollbar styling
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: 'rgba(0,0,0,0.05)',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: 'rgba(0,0,0,0.2)',
-              borderRadius: '4px',
-              '&:hover': {
-                backgroundColor: 'rgba(0,0,0,0.3)',
-              },
-            },
-            transition: theme => theme.transitions.create(['margin'], {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.leavingScreen,
-            }),
-          }}
-        >
-          <Router currentPath={currentPath} />
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        p: 3,
+        backgroundColor: 'background.default'
+      }}>
+        <Box sx={{ maxWidth: 1200, width: '100%' }}>
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <DashboardPage />
+          </React.Suspense>
         </Box>
       </Box>
     </ThemeProvider>
