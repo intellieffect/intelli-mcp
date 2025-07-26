@@ -17,6 +17,7 @@ import {
   Code as FormatIcon,
   Cancel as CancelIcon,
 } from '@mui/icons-material';
+import { InteractiveJsonEditor } from './InteractiveJsonEditor';
 
 export const JsonConfigEditor: React.FC = () => {
   console.log('JsonConfigEditor: Component mounting...');
@@ -219,34 +220,11 @@ export const JsonConfigEditor: React.FC = () => {
       )}
 
       {/* JSON Editor */}
-      <Paper 
-        variant="outlined" 
-        sx={{ 
-          p: 0,
-          borderRadius: 2,
-          overflow: 'hidden'
-        }}
-      >
-        <textarea
-          value={jsonText}
-          onChange={(e) => setJsonText(e.target.value)}
-          readOnly={!isEditing}
-          style={{
-            width: '100%',
-            height: '500px',
-            border: 'none',
-            outline: 'none',
-            padding: '24px',
-            fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-            fontSize: '14px',
-            lineHeight: '1.6',
-            resize: 'vertical',
-            backgroundColor: isEditing ? '#fff' : '#f8f9fa',
-            color: isEditing ? '#000' : '#666',
-          }}
-          placeholder="Loading configuration..."
-        />
-      </Paper>
+      <InteractiveJsonEditor
+        value={jsonText}
+        onChange={setJsonText}
+        readOnly={!isEditing}
+      />
     </Box>
   );
 };

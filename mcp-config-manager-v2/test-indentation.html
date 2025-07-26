@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Indentation Test</title>
+    <style>
+        .test-container {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: #fafafa;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        .level-0 { padding-left: 0px; background: rgba(255,0,0,0.1); }
+        .level-1 { padding-left: 32px; background: rgba(0,255,0,0.1); }
+        .level-2 { padding-left: 64px; background: rgba(0,0,255,0.1); }
+        .level-3 { padding-left: 96px; background: rgba(255,255,0,0.1); }
+        .level-4 { padding-left: 128px; background: rgba(255,0,255,0.1); }
+        div { min-height: 28px; display: flex; align-items: center; border: 1px solid #ddd; margin: 2px 0; }
+    </style>
+</head>
+<body>
+    <h1>Visual Indentation Test</h1>
+    <div class="test-container">
+        <div class="level-0">{</div>
+        <div class="level-1">"mcpServers": {</div>
+        <div class="level-2">"server-name": {</div>
+        <div class="level-3">"command": "node",</div>
+        <div class="level-3">"args": [</div>
+        <div class="level-4">"arg1"</div>
+        <div class="level-3">],</div>
+        <div class="level-3">"env": {</div>
+        <div class="level-4">"KEY": "value"</div>
+        <div class="level-3">}</div>
+        <div class="level-2">}</div>
+        <div class="level-1">}</div>
+        <div class="level-0">}</div>
+    </div>
+</body>
+</html>
