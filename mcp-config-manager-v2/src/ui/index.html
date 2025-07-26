@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self' 'unsafe-inline' 'unsafe-eval';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: https:;
+        font-src 'self' data:;
+        connect-src 'self' ws: wss:;
+    ">
+    <title>MCP Config Manager v2</title>
+    <meta name="description" content="Advanced MCP (Model Context Protocol) configuration manager">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    
+    <!-- Preload critical fonts -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Critical CSS for initial render -->
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #fafafa;
+            color: #212121;
+            overflow: hidden;
+        }
+        
+        #root {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Loading spinner */
+        .app-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e3f2fd;
+            border-top: 4px solid #2196f3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Error boundary styling */
+        .error-boundary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            flex-direction: column;
+            gap: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .error-title {
+            color: #d32f2f;
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0;
+        }
+        
+        .error-message {
+            color: #666;
+            font-size: 16px;
+            margin: 0;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+        
+        .error-details {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 16px;
+            margin-top: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+            text-align: left;
+            white-space: pre-wrap;
+            max-width: 800px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            body {
+                background-color: #ffffff;
+                color: #000000;
+            }
+            
+            .loading-spinner {
+                border-color: #000000;
+                border-top-color: #ffffff;
+            }
+        }
+        
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            .loading-spinner {
+                animation: none;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #121212;
+                color: #ffffff;
+            }
+            
+            .loading-spinner {
+                border-color: #333333;
+                border-top-color: #90caf9;
+            }
+            
+            .loading-text {
+                color: #cccccc;
+            }
+            
+            .error-details {
+                background: #1e1e1e;
+                border-color: #333333;
+                color: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="app-loading">
+            <div class="loading-spinner" aria-label="Loading application"></div>
+            <div class="loading-text">Loading MCP Config Manager...</div>
+        </div>
+    </div>
+    
+    <!-- Error boundary fallback (shown if React fails to load) -->
+    <script>
+        // Simple error handler for critical loading failures
+        window.addEventListener('error', function(event) {
+            const root = document.getElementById('root');
+            if (root && root.querySelector('.app-loading')) {
+                root.innerHTML = `
+                    <div class="error-boundary">
+                        <h1 class="error-title">Application Failed to Load</h1>
+                        <p class="error-message">
+                            The MCP Config Manager failed to start. This could be due to a network issue,
+                            corrupted installation, or compatibility problem.
+                        </p>
+                        <div class="error-details">Error: ${event.error ? event.error.message : event.message}
+File: ${event.filename || 'Unknown'}
+Line: ${event.lineno || 'Unknown'}
+Column: ${event.colno || 'Unknown'}</div>
+                        <p style="margin-top: 24px; color: #666; font-size: 14px;">
+                            Try restarting the application or contact support if the problem persists.
+                        </p>
+                    </div>
+                `;
+            }
+        });
+        
+        // Timeout fallback (in case React never loads)
+        setTimeout(function() {
+            const root = document.getElementById('root');
+            if (root && root.querySelector('.app-loading')) {
+                root.innerHTML = `
+                    <div class="error-boundary">
+                        <h1 class="error-title">Application Load Timeout</h1>
+                        <p class="error-message">
+                            The application is taking too long to load. This might be due to slow network
+                            conditions or a problem with the application files.
+                        </p>
+                        <p style="margin-top: 24px; color: #666; font-size: 14px;">
+                            Try refreshing the application or check your network connection.
+                        </p>
+                    </div>
+                `;
+            }
+        }, 30000); // 30 second timeout
+    </script>
+</body>
+</html>

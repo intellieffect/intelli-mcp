@@ -1,0 +1,27 @@
+{
+  "strict": true,
+  "atLeast": 95,
+  "detail": true,
+  "cache": true,
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "src/**/*.d.ts",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/test/**/*",
+    "src/**/__tests__/**/*",
+    "src/**/*.stories.ts",
+    "src/**/*.stories.tsx",
+    "src/**/*.config.ts",
+    "src/**/*.config.js"
+  ],
+  "reportDir": "coverage/type-coverage",
+  "ignoreFiles": [
+    "src/main/index.ts"
+  ],
+  "enableCache": true,
+  "showRelativePath": true,
+  "debug": false
+}
