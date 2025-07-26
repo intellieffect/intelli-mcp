@@ -83,7 +83,16 @@ export const ClaudeDesktopStatus: React.FC = () => {
       </Box>
       
       {configPath && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+        <Typography 
+          variant="caption" 
+          color="text.secondary" 
+          sx={{ 
+            display: 'block',
+            wordBreak: 'break-all',
+            overflowWrap: 'break-word',
+            maxWidth: '100%'
+          }}
+        >
           Config location: {configPath}
         </Typography>
       )}

@@ -62,8 +62,51 @@ const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => 
   };
 
   return (
-    <Card variant="outlined" sx={{ mb: 2 }}>
-      <ListItem>
+    <Card variant="outlined" sx={{ mb: 2, position: 'relative' }}>
+      {/* Action buttons in top-right corner */}
+      <Box 
+        sx={{ 
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          display: 'flex',
+          gap: 0.5,
+          zIndex: 1
+        }}
+      >
+        <Tooltip title="Copy command">
+          <IconButton 
+            size="small"
+            onClick={() => handleCopy(`${server.command} ${server.args?.join(' ') || ''}`)}
+            sx={{ 
+              bgcolor: 'background.paper',
+              boxShadow: 1,
+              '&:hover': {
+                bgcolor: 'action.hover'
+              }
+            }}
+          >
+            <CopyIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={expanded ? "Hide details" : "Show details"}>
+          <IconButton 
+            size="small"
+            onClick={() => setExpanded(!expanded)}
+            sx={{ 
+              bgcolor: 'background.paper',
+              boxShadow: 1,
+              '&:hover': {
+                bgcolor: 'action.hover'
+              }
+            }}
+          >
+            {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <ListItem sx={{ pr: 10 }}> {/* Add right padding to avoid button overlap */}
         <ListItemText
           primary={
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -73,37 +116,59 @@ const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => 
           }
           secondary={
             <Box sx={{ mt: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                Command: <code>{server.command}</code>
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ 
+                  wordBreak: 'break-all',
+                  overflowWrap: 'break-word',
+                  maxWidth: '100%',
+                  overflow: 'hidden'
+                }}
+              >
+                Command: <Box 
+                  component="code" 
+                  sx={{ 
+                    wordBreak: 'break-all',
+                    fontFamily: 'monospace',
+                    maxWidth: '100%',
+                    display: 'inline-block',
+                    verticalAlign: 'top'
+                  }}
+                >
+                  {server.command}
+                </Box>
               </Typography>
               {server.args && server.args.length > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  Arguments: {server.args.join(' ')}
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ 
+                    wordBreak: 'break-all',
+                    overflowWrap: 'break-word',
+                    maxWidth: '100%',
+                    overflow: 'hidden',
+                    whiteSpace: 'pre-wrap'
+                  }}
+                >
+                  Arguments: <Box 
+                    component="span" 
+                    sx={{ 
+                      fontFamily: 'monospace',
+                      wordBreak: 'break-all',
+                      overflowWrap: 'break-word',
+                      display: 'inline-block',
+                      maxWidth: '100%',
+                      verticalAlign: 'top'
+                    }}
+                  >
+                    {server.args.join(' ')}
+                  </Box>
                 </Typography>
               )}
             </Box>
           }
         />
-        <ListItemSecondaryAction>
-          <Tooltip title={expanded ? "Hide details" : "Show details"}>
-            <IconButton 
-              edge="end" 
-              onClick={() => setExpanded(!expanded)}
-              sx={{ mr: 1 }}
-            >
-              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Copy command">
-            <IconButton 
-              edge="end" 
-              onClick={() => handleCopy(`${server.command} ${server.args?.join(' ') || ''}`)}
-              sx={{ mr: 1 }}
-            >
-              <CopyIcon />
-            </IconButton>
-          </Tooltip>
-        </ListItemSecondaryAction>
       </ListItem>
       
       <Collapse in={expanded}>
@@ -114,10 +179,33 @@ const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => 
               <Typography variant="subtitle2" gutterBottom>
                 Full Command
               </Typography>
-              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50' }}>
-                <code>
+              <Paper 
+                variant="outlined" 
+                sx={{ 
+                  p: 2, 
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  maxWidth: '100%',
+                  overflow: 'hidden'
+                }}
+              >
+                <Typography 
+                  component="code" 
+                  sx={{ 
+                    fontFamily: 'monospace',
+                    fontSize: '0.875rem',
+                    wordBreak: 'break-all',
+                    overflowWrap: 'break-word',
+                    color: 'text.primary',
+                    maxWidth: '100%',
+                    display: 'block',
+                    whiteSpace: 'pre-wrap',
+                    overflow: 'hidden'
+                  }}
+                >
                   {server.command} {server.args?.join(' ') || ''}
-                </code>
+                </Typography>
               </Paper>
             </Grid>
             
@@ -128,14 +216,22 @@ const ServerDetails: React.FC<ServerDetailsProps> = ({ serverName, server }) => 
                 </Typography>
                 <Paper variant="outlined" sx={{ p: 2 }}>
                   {Object.entries(server.env).map(([key, value]) => (
-                    <Box key={key} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <Box key={key} sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'flex-start' }}>
                       <Chip 
                         label={key} 
                         size="small" 
                         color="primary" 
                         variant="outlined"
+                        sx={{ flexShrink: 0 }}
                       />
-                      <Typography variant="body2">
+                      <Typography 
+                        variant="body2"
+                        sx={{ 
+                          wordBreak: 'break-all',
+                          overflowWrap: 'break-word',
+                          flex: 1
+                        }}
+                      >
                         {value}
                       </Typography>
                     </Box>

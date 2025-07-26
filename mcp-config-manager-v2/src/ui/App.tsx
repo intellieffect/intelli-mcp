@@ -144,15 +144,28 @@ const AppContent: React.FC = () => {
   return (
     <ThemeProvider theme={appTheme}>
       <CssBaseline />
+      {/* Draggable title bar area for Electron */}
+      <Box 
+        sx={{ 
+          height: '32px',
+          backgroundColor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
+          WebkitAppRegion: 'drag',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000
+        }}
+      />
       <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center',
-        alignItems: 'center',
         minHeight: '100vh',
         p: 3,
+        pt: '48px', // Account for fixed title bar
         backgroundColor: 'background.default'
       }}>
-        <Box sx={{ maxWidth: 1200, width: '100%' }}>
+        <Box sx={{ maxWidth: 1200, width: '100%', mx: 'auto' }}>
           <React.Suspense fallback={<div>Loading...</div>}>
             <DashboardPage />
           </React.Suspense>
