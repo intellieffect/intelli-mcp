@@ -1,5 +1,5 @@
 /**
- * Webpack configuration for Electron renderer process
+ * Simple webpack configuration for Electron renderer process
  */
 
 const path = require('path');
@@ -9,7 +9,7 @@ const webpack = require('webpack');
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const config = {
-  target: 'web', // Changed from 'electron-renderer' to 'web' for better compatibility
+  target: 'web',
   entry: {
     renderer: './src/ui/index.tsx',
   },
@@ -20,12 +20,6 @@ const config = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js', '.jsx'],
-    alias: {
-      '@core': path.resolve(__dirname, 'src/core'),
-      '@shared': path.resolve(__dirname, 'src/shared'),
-      '@ui': path.resolve(__dirname, 'src/ui'),
-      '@test': path.resolve(__dirname, 'src/test'),
-    },
   },
   module: {
     rules: [
@@ -44,20 +38,6 @@ const config = {
         test: /\.css$/,
         use: ['style-loader', 'css-loader'],
       },
-      {
-        test: /\.(png|jpe?g|gif|svg)$/,
-        type: 'asset/resource',
-        generator: {
-          filename: 'assets/images/[hash][ext][query]',
-        },
-      },
-      {
-        test: /\.(woff|woff2|eot|ttf|otf)$/,
-        type: 'asset/resource',
-        generator: {
-          filename: 'assets/fonts/[hash][ext][query]',
-        },
-      },
     ],
   },
   plugins: [
@@ -67,19 +47,13 @@ const config = {
       inject: true,
       minify: !isDevelopment,
     }),
-    // Provide polyfills for Node.js globals in the renderer process
-    new webpack.ProvidePlugin({
-      global: 'globalThis',
-    }),
     new webpack.DefinePlugin({
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
-      'process': JSON.stringify({ env: { NODE_ENV: process.env.NODE_ENV || 'production' } }),
     }),
   ],
   devServer: {
     port: 3000,
     hot: true,
-    historyApiFallback: true,
     static: {
       directory: path.join(__dirname, 'dist'),
     },
@@ -96,24 +70,12 @@ const config = {
           name: 'vendors',
           chunks: 'all',
         },
-        react: {
-          test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-          name: 'react',
-          chunks: 'all',
-        },
-        mui: {
-          test: /[\\/]node_modules[\\/]@mui[\\/]/,
-          name: 'mui',
-          chunks: 'all',
-        },
       },
     },
   },
   devtool: isDevelopment ? 'eval-cheap-module-source-map' : 'source-map',
   performance: {
     hints: false,
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000,
   },
 };
 

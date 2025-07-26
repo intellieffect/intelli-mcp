@@ -1,10 +1,9 @@
 /**
- * Webpack configuration for Electron main process
+ * Simple webpack configuration for Electron main process
  */
 
 const path = require('path');
 const webpack = require('webpack');
-const { Configuration } = require('webpack');
 
 const config = {
   target: 'electron-main',
@@ -19,11 +18,6 @@ const config = {
   },
   resolve: {
     extensions: ['.ts', '.js'],
-    alias: {
-      '@core': path.resolve(__dirname, 'src/core'),
-      '@shared': path.resolve(__dirname, 'src/shared'),
-      '@main': path.resolve(__dirname, 'src/main'),
-    },
   },
   module: {
     rules: [
