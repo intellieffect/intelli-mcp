@@ -20,28 +20,52 @@ export const MinimalLayout: React.FC<MinimalLayoutProps> = ({ children }) => {
       minHeight: '100vh',
       backgroundColor: 'background.default'
     }}>
-      {/* Simple Header */}
-      <Container maxWidth="lg" sx={{ pt: 4, pb: 2 }}>
-        <Typography 
-          variant="h4" 
-          component="h1" 
-          sx={{ 
-            fontWeight: 500,
-            color: 'text.primary',
-            mb: 1
-          }}
-        >
-          MCP Config Manager v2
-        </Typography>
-        <Typography 
-          variant="body2" 
-          color="text.secondary"
-          sx={{ mb: 3 }}
-        >
-          Simple JSON editor for Claude Desktop configuration
-        </Typography>
-        <Divider sx={{ mb: 3 }} />
-      </Container>
+      {/* Draggable Header Area */}
+      <Box
+        sx={{
+          '-webkit-app-region': 'drag',
+          '-webkit-user-select': 'none',
+          userSelect: 'none',
+          backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          position: 'relative',
+          zIndex: 100,
+          cursor: 'grab',
+          '&:active': {
+            cursor: 'grabbing',
+          },
+        }}
+      >
+        <Container maxWidth="lg" sx={{ pt: 4, pb: 2 }}>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            sx={{ 
+              fontWeight: 500,
+              color: 'text.primary',
+              mb: 1,
+              '-webkit-user-select': 'none',
+              userSelect: 'none',
+              cursor: 'default',
+            }}
+          >
+            MCP Config Manager v2
+          </Typography>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ 
+              mb: 3,
+              '-webkit-user-select': 'none',
+              userSelect: 'none',
+              cursor: 'default',
+            }}
+          >
+            Simple JSON editor for Claude Desktop configuration
+          </Typography>
+        </Container>
+      </Box>
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ pb: 4 }}>
