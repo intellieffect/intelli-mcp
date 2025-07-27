@@ -97,7 +97,25 @@ const EditableText: React.FC<EditableTextProps> = ({
   };
 
   if (readOnly) {
-    return <span style={{ color: isKey ? '#d73a49' : '#032f62' }}>{value}</span>;
+    // For very long values (like JWT tokens), show truncated version
+    const displayValue = value.length > 100 ? 
+      `${value.substring(0, 50)}...${value.substring(value.length - 20)}` : 
+      value;
+    
+    return (
+      <span 
+        style={{ 
+          color: isKey ? '#d73a49' : '#032f62',
+          wordWrap: 'break-word',
+          wordBreak: 'break-word',
+          maxWidth: '100%',
+          display: 'inline-block'
+        }}
+        title={value.length > 100 ? value : undefined} // Show full value on hover
+      >
+        {displayValue}
+      </span>
+    );
   }
 
   if (isEditing) {
@@ -117,11 +135,18 @@ const EditableText: React.FC<EditableTextProps> = ({
             fontFamily: 'Monaco, Consolas, monospace',
             padding: '2px 4px',
             color: isKey ? '#d73a49' : '#032f62',
+            wordWrap: 'break-word',
+            wordBreak: 'break-word'
           }
         }}
       />
     );
   }
+
+  // For editable state, also show truncated version for long values
+  const displayValue = (value || placeholder).length > 100 ? 
+    `${(value || placeholder).substring(0, 50)}...${(value || placeholder).substring((value || placeholder).length - 20)}` : 
+    (value || placeholder);
 
   return (
     <span
@@ -131,9 +156,14 @@ const EditableText: React.FC<EditableTextProps> = ({
         cursor: 'pointer',
         borderBottom: '1px dashed #ccc',
         paddingBottom: '1px',
+        wordWrap: 'break-word',
+        wordBreak: 'break-word',
+        maxWidth: '100%',
+        display: 'inline-block'
       }}
+      title={(value || placeholder).length > 100 ? (value || placeholder) : undefined}
     >
-      {value || placeholder}
+      {displayValue}
     </span>
   );
 };
@@ -348,16 +378,22 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
     minHeight: '30px'
   });
   
-  // Perfect indentation system with visual hierarchy
+  // Perfect indentation system with text wrapping
   const getIndentForDiv = (level: number): React.CSSProperties => ({
     paddingLeft: `${level * 28}px`,
     minHeight: '30px',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
     position: 'relative',
     backgroundColor: level > 2 ? 'rgba(0,0,0,0.03)' : 'transparent',
     borderLeft: level > 0 ? `1px solid rgba(0,0,0,0.1)` : 'none',
-    marginLeft: level > 0 ? `${(level-1) * 2}px` : '0px'
+    marginLeft: level > 0 ? `${(level-1) * 2}px` : '0px',
+    wordWrap: 'break-word',
+    wordBreak: 'break-word',
+    overflow: 'hidden',
+    maxWidth: '100%',
+    boxSizing: 'border-box'
   });
 
   return (
@@ -370,10 +406,12 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
         backgroundColor: '#fafafa',
         padding: '20px',
         borderRadius: '8px',
-        overflowX: 'auto',
+        overflow: 'auto',
         border: '1px solid #e1e4e8',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        position: 'relative'
+        position: 'relative',
+        maxWidth: '100%',
+        wordWrap: 'break-word'
       }}
     >
       <div>{'{'}</div>
@@ -396,10 +434,18 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
           borderLeft: `4px solid ${serverColorMap[serverName]?.accent}`,
           borderRadius: '6px',
           border: '1px solid rgba(0,0,0,0.05)',
+          overflow: 'hidden',
+          wordWrap: 'break-word',
+          wordBreak: 'break-word',
           '&:hover': {
             backgroundColor: serverColorMap[serverName]?.bg,
             filter: 'brightness(0.98)',
             borderColor: serverColorMap[serverName]?.accent
+          },
+          '& > div': {
+            maxWidth: '100%',
+            overflow: 'hidden',
+            wordWrap: 'break-word'
           }
         }}>
           <div style={getIndentForDiv(2)}>
