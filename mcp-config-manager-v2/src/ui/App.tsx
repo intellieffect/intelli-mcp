@@ -1,5 +1,5 @@
 /**
- * Simple JSON Config Editor App
+ * Multi-file JSON Config Editor App
  */
 
 import React from 'react';
@@ -8,7 +8,8 @@ import {
   createTheme,
   CssBaseline,
 } from '@mui/material';
-import { JsonConfigEditor, MinimalLayout } from './components';
+import { MinimalLayout, MultiFileJsonEditor } from './components';
+import { FileManagementProvider } from './context/FileManagementContext';
 
 // Simple theme with system fonts (no Google Fonts)
 const theme = createTheme({
@@ -16,6 +17,9 @@ const theme = createTheme({
     mode: 'light',
     primary: {
       main: '#1976d2',
+    },
+    secondary: {
+      main: '#9c27b0',
     },
   },
   typography: {
@@ -36,9 +40,11 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <MinimalLayout>
-        <JsonConfigEditor />
-      </MinimalLayout>
+      <FileManagementProvider>
+        <MinimalLayout>
+          <MultiFileJsonEditor />
+        </MinimalLayout>
+      </FileManagementProvider>
     </ThemeProvider>
   );
 };

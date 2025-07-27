@@ -1,10 +1,11 @@
 /**
- * Simple IPC handlers for JSON config editor
+ * IPC handlers for multi-file JSON config editor
  */
 
-import { ipcMain } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import { getLogger, type Logger } from '../utils/logging';
 import { validateFilePath } from '../utils/security';
+import { getFileManager, type ManagedFile } from '../services/file-manager.service';
 import * as os from 'os';
 import * as path from 'path';
 
@@ -18,6 +19,7 @@ export const setupIPC = (): void => {
   
   setupFileHandlers();
   setupConfigHandlers();
+  setupFileManagementHandlers();
   
   logger.info('IPC handlers registered');
   logger.info('Claude Desktop config path:', getConfigPath());
@@ -37,13 +39,13 @@ const getConfigPath = (): string => {
 };
 
 /**
- * File-related IPC handlers
+ * File-related IPC handlers (legacy support)
  */
 const setupFileHandlers = (): void => {
-  // Read file
+  // Read file (legacy)
   ipcMain.handle('file:read', async (event, filePath: string) => {
     try {
-      logger.info('File read request for:', filePath);
+      logger.info('Legacy file read request for:', filePath);
       
       // Validate file path for security
       const isValidPath = validateFilePath(filePath);
@@ -65,7 +67,7 @@ const setupFileHandlers = (): void => {
     }
   });
 
-  // Write file
+  // Write file (legacy)
   ipcMain.handle('file:write', async (event, filePath: string, content: string) => {
     try {
       // Validate file path for security
@@ -96,6 +98,129 @@ const setupConfigHandlers = (): void => {
       return { success: true, data: path };
     } catch (error) {
       logger.error('Get config path failed:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+};
+
+/**
+ * File management IPC handlers
+ */
+const setupFileManagementHandlers = (): void => {
+  const fileManager = getFileManager();
+
+  // Add files to management
+  ipcMain.handle('files:add', async (event, paths: string[]): Promise<{ success: boolean; data?: ManagedFile[]; error?: string }> => {
+    try {
+      logger.info('Adding files:', paths);
+      const managedFiles = await fileManager.addFiles(paths);
+      logger.info('Files added successfully:', managedFiles.length);
+      return { success: true, data: managedFiles };
+    } catch (error) {
+      logger.error('Failed to add files:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Remove file from management
+  ipcMain.handle('files:remove', async (event, fileId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      logger.info('Removing file:', fileId);
+      await fileManager.removeFile(fileId);
+      logger.info('File removed successfully');
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to remove file:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // List all managed files
+  ipcMain.handle('files:list', async (): Promise<{ success: boolean; data?: ManagedFile[]; error?: string }> => {
+    try {
+      const files = await fileManager.listFiles();
+      logger.info('Listed files:', files.length);
+      return { success: true, data: files };
+    } catch (error) {
+      logger.error('Failed to list files:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Read file by ID
+  ipcMain.handle('files:read', async (event, fileId: string): Promise<{ success: boolean; data?: any; error?: string }> => {
+    try {
+      logger.info('Reading file by ID:', fileId);
+      const content = await fileManager.readFile(fileId);
+      logger.info('File read successfully by ID');
+      return { success: true, data: content };
+    } catch (error) {
+      logger.error('Failed to read file by ID:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Write file by ID
+  ipcMain.handle('files:write', async (event, fileId: string, content: any): Promise<{ success: boolean; error?: string }> => {
+    try {
+      logger.info('Writing file by ID:', fileId);
+      await fileManager.writeFile(fileId, content);
+      logger.info('File written successfully by ID');
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to write file by ID:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Get last active file ID
+  ipcMain.handle('files:getActiveId', async (): Promise<{ success: boolean; data?: string; error?: string }> => {
+    try {
+      const activeId = fileManager.getLastActiveFileId();
+      return { success: true, data: activeId };
+    } catch (error) {
+      logger.error('Failed to get active file ID:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Set active file ID
+  ipcMain.handle('files:setActiveId', async (event, fileId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      fileManager.setLastActiveFileId(fileId);
+      logger.info('Active file ID set:', fileId);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to set active file ID:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  // Show open dialog for adding files
+  ipcMain.handle('files:showOpenDialog', async (event): Promise<{ success: boolean; data?: string[]; error?: string }> => {
+    try {
+      const focusedWindow = BrowserWindow.getFocusedWindow();
+      if (!focusedWindow) {
+        throw new Error('No focused window');
+      }
+
+      const result = await dialog.showOpenDialog(focusedWindow, {
+        title: 'Select JSON Configuration Files',
+        filters: [
+          { name: 'JSON Files', extensions: ['json'] },
+          { name: 'MCP Config Files', extensions: ['mcp.json'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['openFile', 'multiSelections']
+      });
+
+      if (result.canceled) {
+        return { success: true, data: [] };
+      }
+
+      return { success: true, data: result.filePaths };
+    } catch (error) {
+      logger.error('Failed to show open dialog:', error);
       return { success: false, error: (error as Error).message };
     }
   });
