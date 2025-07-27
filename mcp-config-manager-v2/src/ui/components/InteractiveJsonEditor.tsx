@@ -2,7 +2,7 @@
  * Interactive JSON Editor for MCP Config
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   IconButton,
@@ -14,6 +14,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
+import { EditValueDialog } from './EditValueDialog';
 
 interface InteractiveJsonEditorProps {
   value: string;
@@ -67,104 +68,76 @@ const EditableText: React.FC<EditableTextProps> = ({
   isKey = false,
   placeholder = ''
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  const handleSave = () => {
-    onChange(editValue);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditValue(value);
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    } else if (e.key === 'Escape') {
-      handleCancel();
+  // 다이얼로그 열기
+  const handleOpenDialog = () => {
+    if (!readOnly) {
+      setDialogOpen(true);
     }
   };
 
-  if (readOnly) {
-    // For very long values (like JWT tokens), show truncated version
-    const displayValue = value.length > 100 ? 
-      `${value.substring(0, 50)}...${value.substring(value.length - 20)}` : 
-      value;
+  // 다이얼로그에서 저장
+  const handleSaveFromDialog = (newValue: string) => {
+    onChange(newValue);
+    setDialogOpen(false);
+  };
+
+  // 표시값 계산
+  const getDisplayValue = () => {
+    if (!value) return placeholder;
     
-    return (
-      <span 
-        style={{ 
+    // 긴 값은 줄여서 표시
+    if (value.length > 100) {
+      return `${value.substring(0, 50)}...${value.substring(value.length - 20)}`;
+    }
+    return value;
+  };
+
+  return (
+    <>
+      <span
+        onClick={handleOpenDialog}
+        onKeyDown={(e) => {
+          if (!readOnly && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            handleOpenDialog();
+          }
+        }}
+        role={readOnly ? undefined : 'button'}
+        tabIndex={readOnly ? undefined : 0}
+        aria-label={`${isKey ? '키' : '값'}: ${value || placeholder}. ${readOnly ? '' : '클릭하여 편집'}`}
+        style={{
           color: isKey ? '#d73a49' : '#032f62',
+          cursor: readOnly ? 'default' : 'pointer',
+          borderBottom: readOnly ? 'none' : '1px dashed #ccc',
+          paddingBottom: '1px',
           wordWrap: 'break-word',
           wordBreak: 'break-word',
           maxWidth: '100%',
-          display: 'inline-block'
+          display: 'inline-block',
+          textDecoration: readOnly ? 'none' : 'underline',
+          textDecorationStyle: 'dotted',
+          textDecorationColor: '#ccc'
         }}
-        title={value.length > 100 ? value : undefined} // Show full value on hover
+        title={value && value.length > 100 ? value : undefined}
       >
-        {displayValue}
+        {getDisplayValue()}
       </span>
-    );
-  }
-
-  if (isEditing) {
-    return (
-      <TextField
-        ref={inputRef}
-        value={editValue}
-        onChange={(e) => setEditValue(e.target.value)}
-        onBlur={handleSave}
-        onKeyDown={handleKeyDown}
-        size="small"
-        variant="standard"
+      
+      {/* 편집 다이얼로그 */}
+      <EditValueDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleSaveFromDialog}
+        value={value || ''}
+        title={isKey ? '키 편집' : '값 편집'}
+        isKey={isKey}
         placeholder={placeholder}
-        sx={{
-          '& .MuiInput-input': {
-            fontSize: '14px',
-            fontFamily: 'Monaco, Consolas, monospace',
-            padding: '2px 4px',
-            color: isKey ? '#d73a49' : '#032f62',
-            wordWrap: 'break-word',
-            wordBreak: 'break-word'
-          }
-        }}
+        helperText={isKey ? '영문, 숫자, -, _ 만 사용 가능합니다' : undefined}
+        multiline={!isKey}
       />
-    );
-  }
-
-  // For editable state, also show truncated version for long values
-  const displayValue = (value || placeholder).length > 100 ? 
-    `${(value || placeholder).substring(0, 50)}...${(value || placeholder).substring((value || placeholder).length - 20)}` : 
-    (value || placeholder);
-
-  return (
-    <span
-      onClick={() => setIsEditing(true)}
-      style={{
-        color: isKey ? '#d73a49' : '#032f62',
-        cursor: 'pointer',
-        borderBottom: '1px dashed #ccc',
-        paddingBottom: '1px',
-        wordWrap: 'break-word',
-        wordBreak: 'break-word',
-        maxWidth: '100%',
-        display: 'inline-block'
-      }}
-      title={(value || placeholder).length > 100 ? (value || placeholder) : undefined}
-    >
-      {displayValue}
-    </span>
+    </>
   );
 };
 
@@ -180,10 +153,15 @@ const AddButton: React.FC<AddButtonProps> = ({ onClick, tooltip, size = 'small' 
     <IconButton 
       onClick={onClick}
       size={size}
+      aria-label={tooltip}
       sx={{ 
         padding: '2px',
         color: '#4caf50',
-        '&:hover': { backgroundColor: '#e8f5e9' }
+        '&:hover': { backgroundColor: '#e8f5e9' },
+        '&:focus': { 
+          outline: '2px solid #4caf50',
+          outlineOffset: '2px'
+        }
       }}
     >
       <AddIcon fontSize={size} />
@@ -203,10 +181,15 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({ onClick, tooltip, size = 's
     <IconButton 
       onClick={onClick}
       size={size}
+      aria-label={tooltip}
       sx={{ 
         padding: '2px',
         color: '#f44336',
-        '&:hover': { backgroundColor: '#ffebee' }
+        '&:hover': { backgroundColor: '#ffebee' },
+        '&:focus': { 
+          outline: '2px solid #f44336',
+          outlineOffset: '2px'
+        }
       }}
     >
       <DeleteIcon fontSize={size} />
@@ -222,7 +205,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
   const [config, setConfig] = useState<any>({});
   const [serverColorMap, setServerColorMap] = useState<Record<string, { bg: string; accent: string }>>({});
 
-  // Parse JSON on mount and when value changes
+  // Parse JSON on mount and when value changes (prevent infinite loop)
   useEffect(() => {
     try {
       const parsed = JSON.parse(value);
@@ -245,11 +228,16 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
     }
   }, [value]);
 
-  // Update the parent component
-  const updateConfig = (newConfig: any) => {
-    setConfig(newConfig);
-    onChange(JSON.stringify(newConfig, null, 2));
-  };
+  // Update the parent component (memoized to prevent infinite loops)
+  const updateConfig = useCallback((newConfig: any) => {
+    const newConfigString = JSON.stringify(newConfig, null, 2);
+    
+    // Only call onChange if the config actually changed
+    if (newConfigString !== value) {
+      setConfig(newConfig);
+      onChange(newConfigString);
+    }
+  }, [value, onChange]);
 
   // Add new server
   const addServer = () => {

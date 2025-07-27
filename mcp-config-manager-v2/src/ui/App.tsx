@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { JsonConfigEditor, MinimalLayout } from './components';
 
-// Simple theme
+// Simple theme with system fonts (no Google Fonts)
 const theme = createTheme({
   palette: {
     mode: 'light',
@@ -19,7 +19,16 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica", "Arial", sans-serif',
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        '@global': {
+          '@import': undefined, // Prevent Google Fonts import
+        },
+      },
+    },
   },
 });
 
