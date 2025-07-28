@@ -146,10 +146,10 @@ export const JsonConfigEditor: React.FC = () => {
             • electronAPI 존재: {window.electronAPI ? '✅' : '❌'}
           </Typography>
           <Typography variant="caption" component="div">
-            • getConfigPath 함수: {window.electronAPI?.getConfigPath ? '✅' : '❌'}
+            • getConfigPath 함수: {typeof window.electronAPI?.getConfigPath === 'function' ? '✅' : '❌'}
           </Typography>
           <Typography variant="caption" component="div">
-            • readFile 함수: {window.electronAPI?.readFile ? '✅' : '❌'}
+            • readFile 함수: {typeof window.electronAPI?.readFile === 'function' ? '✅' : '❌'}
           </Typography>
           <Typography variant="caption" component="div">
             • 설정 파일 경로: {configPath || '미확인'}

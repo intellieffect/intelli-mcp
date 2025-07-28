@@ -3,82 +3,114 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../stores';
-import { claudeDesktopActions, selectClaudeDesktopConfig, selectClaudeDesktopConfigPath, selectClaudeDesktopLoading, selectClaudeDesktopError, selectClaudeDesktopServerCount } from '../stores/claude-desktop-store';
 
 export const useClaudeDesktopConfig = () => {
-  const dispatch = useAppDispatch();
-  
-  const configuration = useAppSelector(selectClaudeDesktopConfig);
-  const configPath = useAppSelector(selectClaudeDesktopConfigPath);
-  const isLoading = useAppSelector(selectClaudeDesktopLoading);
-  const error = useAppSelector(selectClaudeDesktopError);
-  const serverCount = useAppSelector(selectClaudeDesktopServerCount);
+  const [configuration, setConfiguration] = useState<any>(null);
+  const [configPath, setConfigPath] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [serverCount, setServerCount] = useState(0);
 
+  // Load config on mount
   useEffect(() => {
-    // Get config path
-    const getConfigPath = async () => {
-      try {
-        const result = await window.electronAPI.getConfigPath();
-        if (result.success) {
-          dispatch(claudeDesktopActions.setConfigPath(result.data));
-        }
-      } catch (err) {
-        console.error('Failed to get config path:', err);
-      }
-    };
-
-    // Load configuration on mount
     const loadConfig = async () => {
-      dispatch(claudeDesktopActions.setLoading(true));
-      dispatch(claudeDesktopActions.clearError());
-      
       try {
-        const result = await window.electronAPI.loadConfig();
-        if (result.success) {
-          dispatch(claudeDesktopActions.setConfig(result.data));
-        } else {
-          throw new Error(result.error || 'Failed to load configuration');
+        setIsLoading(true);
+        setError(null);
+        
+        if (!window.electronAPI) {
+          throw new Error('Electron API not available');
         }
+
+        // Get config path
+        const path = await window.electronAPI.getConfigPath();
+        setConfigPath(path);
+
+        // Load config content
+        const content = await window.electronAPI.readFile(path);
+        const parsed = JSON.parse(content);
+        setConfiguration(parsed);
+        
+        // Count servers
+        const count = parsed?.mcpServers ? Object.keys(parsed.mcpServers).length : 0;
+        setServerCount(count);
+        
       } catch (err) {
-        dispatch(claudeDesktopActions.setError(
-          err instanceof Error ? err.message : 'Failed to load configuration'
-        ));
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        console.error('Failed to load Claude Desktop config:', err);
       } finally {
-        dispatch(claudeDesktopActions.setLoading(false));
+        setIsLoading(false);
       }
     };
 
-    getConfigPath();
     loadConfig();
-  }, [dispatch]);
+  }, []);
 
-  const reloadConfig = async () => {
-    dispatch(claudeDesktopActions.setLoading(true));
-    dispatch(claudeDesktopActions.clearError());
-    
+  // Save config function
+  const saveConfig = async (newConfig: any) => {
     try {
-      const result = await window.electronAPI.loadConfig();
-      if (result.success) {
-        dispatch(claudeDesktopActions.setConfig(result.data));
-      } else {
-        throw new Error(result.error || 'Failed to reload configuration');
+      setIsLoading(true);
+      setError(null);
+      
+      if (!window.electronAPI) {
+        throw new Error('Electron API not available');
       }
+
+      const configString = JSON.stringify(newConfig, null, 2);
+      await window.electronAPI.writeFile(configPath, configString);
+      
+      setConfiguration(newConfig);
+      
+      // Update server count
+      const count = newConfig?.mcpServers ? Object.keys(newConfig.mcpServers).length : 0;
+      setServerCount(count);
+      
     } catch (err) {
-      dispatch(claudeDesktopActions.setError(
-        err instanceof Error ? err.message : 'Failed to reload configuration'
-      ));
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      console.error('Failed to save Claude Desktop config:', err);
+      throw err;
     } finally {
-      dispatch(claudeDesktopActions.setLoading(false));
+      setIsLoading(false);
+    }
+  };
+
+  // Reload config function
+  const reloadConfig = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      if (!window.electronAPI) {
+        throw new Error('Electron API not available');
+      }
+
+      const content = await window.electronAPI.readFile(configPath);
+      const parsed = JSON.parse(content);
+      setConfiguration(parsed);
+      
+      // Update server count
+      const count = parsed?.mcpServers ? Object.keys(parsed.mcpServers).length : 0;
+      setServerCount(count);
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+      console.error('Failed to reload Claude Desktop config:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return {
-    configPath,
     configuration,
+    configPath,
     isLoading,
     error,
-    reloadConfig,
     serverCount,
+    saveConfig,
+    reloadConfig
   };
 };

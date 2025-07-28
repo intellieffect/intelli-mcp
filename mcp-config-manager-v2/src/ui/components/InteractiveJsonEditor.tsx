@@ -6,6 +6,11 @@ import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   Box,
   IconButton,
+  Button,
+  ButtonGroup,
+  Menu,
+  MenuItem,
+  Divider,
   Tooltip,
   TextField,
   Chip,
@@ -13,8 +18,12 @@ import {
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
+  ImportExport as ImportIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import {EditValueDialog} from './EditValueDialog';
+import {ServerImportDialog} from './ServerImportDialog';
+import {ParsedServer} from '../utils/mcpServerParser';
 
 interface InteractiveJsonEditorProps {
   value: string;
@@ -204,6 +213,8 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
                                                                             }) => {
   const [config, setConfig] = useState<any>({});
   const [serverColorMap, setServerColorMap] = useState<Record<string, { bg: string; accent: string }>>({});
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [addMenuAnchor, setAddMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Parse JSON on mount and when value changes (prevent infinite loop)
   useEffect(() => {
@@ -239,6 +250,30 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
     }
   }, [value, onChange]);
 
+  // Handle server import
+  const handleImportServers = useCallback((servers: ParsedServer[]) => {
+    const newServers: Record<string, any> = {};
+    
+    servers.forEach(server => {
+      newServers[server.name] = {
+        command: server.config.command,
+        ...(server.config.args && server.config.args.length > 0 && { args: server.config.args }),
+        ...(server.config.env && Object.keys(server.config.env).length > 0 && { env: server.config.env })
+      };
+    });
+    
+    const newConfig = {
+      ...config,
+      mcpServers: {
+        ...config.mcpServers,
+        ...newServers
+      }
+    };
+    
+    updateConfig(newConfig);
+    setImportDialogOpen(false);
+  }, [config, updateConfig]);
+
   // Add new server
   const addServer = () => {
     const serverName = `server-${Date.now()}`;
@@ -252,6 +287,25 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
       }
     };
     updateConfig(newConfig);
+  };
+
+  // Menu handlers for unified Add Server button
+  const handleAddMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAddMenuAnchor(event.currentTarget);
+  };
+
+  const handleAddMenuClose = () => {
+    setAddMenuAnchor(null);
+  };
+
+  const handleAddSingleServer = () => {
+    addServer();
+    handleAddMenuClose();
+  };
+
+  const handleImportFromJSON = () => {
+    setImportDialogOpen(true);
+    handleAddMenuClose();
   };
 
   // Delete server
@@ -407,10 +461,61 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
       <div style={getIndentForDiv(1)}>
         <span>"mcpServers": {'{'}</span>
         {!readOnly && (
-          <AddButton
-            onClick={addServer}
-            tooltip="Add new server"
-          />
+          <Box component="span" sx={{ ml: 1 }}>
+            <ButtonGroup size="small" variant="outlined">
+              <Button
+                startIcon={<AddIcon />}
+                onClick={handleAddSingleServer}
+                sx={{
+                  fontSize: '12px',
+                  padding: '4px 8px',
+                  color: '#4caf50',
+                  borderColor: '#4caf50',
+                  '&:hover': {
+                    backgroundColor: '#e8f5e9',
+                    borderColor: '#4caf50'
+                  }
+                }}
+              >
+                Add Server
+              </Button>
+              <Button
+                size="small"
+                onClick={handleAddMenuOpen}
+                sx={{
+                  minWidth: '32px',
+                  padding: '4px',
+                  color: '#4caf50',
+                  borderColor: '#4caf50',
+                  '&:hover': {
+                    backgroundColor: '#e8f5e9',
+                    borderColor: '#4caf50'
+                  }
+                }}
+              >
+                <ExpandMoreIcon fontSize="small" />
+              </Button>
+            </ButtonGroup>
+            
+            <Menu
+              anchorEl={addMenuAnchor}
+              open={Boolean(addMenuAnchor)}
+              onClose={handleAddMenuClose}
+              MenuListProps={{
+                'aria-labelledby': 'add-server-button',
+              }}
+            >
+              <MenuItem onClick={handleAddSingleServer}>
+                <AddIcon sx={{ mr: 1, fontSize: '16px' }} />
+                Add Empty Server
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleImportFromJSON}>
+                <ImportIcon sx={{ mr: 1, fontSize: '16px' }} />
+                Import from JSON
+              </MenuItem>
+            </Menu>
+          </Box>
         )}
       </div>
 
@@ -607,6 +712,14 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
       )}
 
       <div>{'}'}</div>
+      
+      {/* Server Import Dialog */}
+      <ServerImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onImport={handleImportServers}
+        existingServers={Object.keys(config.mcpServers || {})}
+      />
     </Box>
   );
 };
