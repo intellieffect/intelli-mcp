@@ -2,7 +2,7 @@
  * Interactive JSON Editor for MCP Config
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {
   Box,
   IconButton,
@@ -14,7 +14,7 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { EditValueDialog } from './EditValueDialog';
+import {EditValueDialog} from './EditValueDialog';
 
 interface InteractiveJsonEditorProps {
   value: string;
@@ -61,13 +61,13 @@ interface EditableTextProps {
 }
 
 const EditableText: React.FC<EditableTextProps> = ({
-  value,
-  onChange,
-  onBlur,
-  readOnly,
-  isKey = false,
-  placeholder = ''
-}) => {
+                                                     value,
+                                                     onChange,
+                                                     onBlur,
+                                                     readOnly,
+                                                     isKey = false,
+                                                     placeholder = ''
+                                                   }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // 다이얼로그 열기
@@ -86,7 +86,7 @@ const EditableText: React.FC<EditableTextProps> = ({
   // 표시값 계산
   const getDisplayValue = () => {
     if (!value) return placeholder;
-    
+
     // 긴 값은 줄여서 표시
     if (value.length > 100) {
       return `${value.substring(0, 50)}...${value.substring(value.length - 20)}`;
@@ -124,7 +124,7 @@ const EditableText: React.FC<EditableTextProps> = ({
       >
         {getDisplayValue()}
       </span>
-      
+
       {/* 편집 다이얼로그 */}
       <EditValueDialog
         open={dialogOpen}
@@ -148,17 +148,17 @@ interface AddButtonProps {
   size?: 'small' | 'medium';
 }
 
-const AddButton: React.FC<AddButtonProps> = ({ onClick, tooltip, size = 'small' }) => (
+const AddButton: React.FC<AddButtonProps> = ({onClick, tooltip, size = 'small'}) => (
   <Tooltip title={tooltip}>
-    <IconButton 
+    <IconButton
       onClick={onClick}
       size={size}
       aria-label={tooltip}
-      sx={{ 
+      sx={{
         padding: '2px',
         color: '#4caf50',
-        '&:hover': { backgroundColor: '#e8f5e9' },
-        '&:focus': { 
+        '&:hover': {backgroundColor: '#e8f5e9'},
+        '&:focus': {
           outline: '2px solid #4caf50',
           outlineOffset: '2px'
         }
@@ -176,17 +176,17 @@ interface DeleteButtonProps {
   size?: 'small' | 'medium';
 }
 
-const DeleteButton: React.FC<DeleteButtonProps> = ({ onClick, tooltip, size = 'small' }) => (
+const DeleteButton: React.FC<DeleteButtonProps> = ({onClick, tooltip, size = 'small'}) => (
   <Tooltip title={tooltip}>
-    <IconButton 
+    <IconButton
       onClick={onClick}
       size={size}
       aria-label={tooltip}
-      sx={{ 
+      sx={{
         padding: '2px',
         color: '#f44336',
-        '&:hover': { backgroundColor: '#ffebee' },
-        '&:focus': { 
+        '&:hover': {backgroundColor: '#ffebee'},
+        '&:focus': {
           outline: '2px solid #f44336',
           outlineOffset: '2px'
         }
@@ -198,10 +198,10 @@ const DeleteButton: React.FC<DeleteButtonProps> = ({ onClick, tooltip, size = 's
 );
 
 export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
-  value,
-  onChange,
-  readOnly
-}) => {
+                                                                              value,
+                                                                              onChange,
+                                                                              readOnly
+                                                                            }) => {
   const [config, setConfig] = useState<any>({});
   const [serverColorMap, setServerColorMap] = useState<Record<string, { bg: string; accent: string }>>({});
 
@@ -210,7 +210,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
     try {
       const parsed = JSON.parse(value);
       setConfig(parsed);
-      
+
       // Assign colors to servers
       const colorMap: Record<string, { bg: string; accent: string }> = {};
       const servers = Object.keys(parsed.mcpServers || {});
@@ -224,14 +224,14 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
       setServerColorMap(colorMap);
     } catch (e) {
       // If parsing fails, initialize with empty config
-      setConfig({ mcpServers: {} });
+      setConfig({mcpServers: {}});
     }
   }, [value]);
 
   // Update the parent component (memoized to prevent infinite loops)
   const updateConfig = useCallback((newConfig: any) => {
     const newConfigString = JSON.stringify(newConfig, null, 2);
-    
+
     // Only call onChange if the config actually changed
     if (newConfigString !== value) {
       setConfig(newConfig);
@@ -256,7 +256,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
 
   // Delete server
   const deleteServer = (serverName: string) => {
-    const { [serverName]: _, ...rest } = config.mcpServers;
+    const {[serverName]: _, ...rest} = config.mcpServers;
     updateConfig({
       ...config,
       mcpServers: rest
@@ -266,8 +266,8 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
   // Rename server
   const renameServer = (oldName: string, newName: string) => {
     if (oldName === newName) return;
-    
-    const { [oldName]: serverConfig, ...rest } = config.mcpServers;
+
+    const {[oldName]: serverConfig, ...rest} = config.mcpServers;
     updateConfig({
       ...config,
       mcpServers: {
@@ -298,13 +298,13 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
       args: [],
       env: {}
     };
-    
+
     updateServerProperty(serverName, property, defaultValues[property]);
   };
 
   // Delete server property
   const deleteServerProperty = (serverName: string, property: string) => {
-    const { [property]: _, ...rest } = config.mcpServers[serverName];
+    const {[property]: _, ...rest} = config.mcpServers[serverName];
     updateConfig({
       ...config,
       mcpServers: {
@@ -345,7 +345,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
 
   // Update env variable
   const updateEnvVar = (serverName: string, oldKey: string, newKey: string, value: string) => {
-    const env = { ...config.mcpServers[serverName].env };
+    const env = {...config.mcpServers[serverName].env};
     if (oldKey !== newKey) {
       delete env[oldKey];
     }
@@ -355,7 +355,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
 
   // Delete env variable
   const deleteEnvVar = (serverName: string, key: string) => {
-    const { [key]: _, ...rest } = config.mcpServers[serverName].env;
+    const {[key]: _, ...rest} = config.mcpServers[serverName].env;
     updateServerProperty(serverName, 'env', rest);
   };
 
@@ -365,7 +365,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
     position: 'relative',
     minHeight: '30px'
   });
-  
+
   // Perfect indentation system with text wrapping
   const getIndentForDiv = (level: number): React.CSSProperties => ({
     paddingLeft: `${level * 28}px`,
@@ -376,7 +376,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
     position: 'relative',
     backgroundColor: level > 2 ? 'rgba(0,0,0,0.03)' : 'transparent',
     borderLeft: level > 0 ? `1px solid rgba(0,0,0,0.1)` : 'none',
-    marginLeft: level > 0 ? `${(level-1) * 2}px` : '0px',
+    marginLeft: level > 0 ? `${(level - 1) * 2}px` : '0px',
     wordWrap: 'break-word',
     wordBreak: 'break-word',
     overflow: 'hidden',
@@ -391,6 +391,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
         fontSize: '14px',
         lineHeight: '1.6',
         color: '#24292e',
+        maxHeight: '700px',
         backgroundColor: '#fafafa',
         padding: '20px',
         borderRadius: '8px',
@@ -412,30 +413,31 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
           />
         )}
       </div>
-      
+
       {Object.entries(config.mcpServers || {}).map(([serverName, serverConfig]: [string, any], serverIndex) => (
-        <Box key={serverName} sx={{ 
-          backgroundColor: serverColorMap[serverName]?.bg, 
-          marginY: '4px', 
-          paddingY: '6px',
-          paddingX: '8px',
-          borderLeft: `4px solid ${serverColorMap[serverName]?.accent}`,
-          borderRadius: '6px',
-          border: '1px solid rgba(0,0,0,0.05)',
-          overflow: 'hidden',
-          wordWrap: 'break-word',
-          wordBreak: 'break-word',
-          '&:hover': {
-            backgroundColor: serverColorMap[serverName]?.bg,
-            filter: 'brightness(0.98)',
-            borderColor: serverColorMap[serverName]?.accent
-          },
-          '& > div': {
-            maxWidth: '100%',
-            overflow: 'hidden',
-            wordWrap: 'break-word'
-          }
-        }}>
+        <Box key={serverName}
+             sx={{
+               backgroundColor: serverColorMap[serverName]?.bg,
+               marginY: '4px',
+               paddingY: '6px',
+               paddingX: '8px',
+               borderLeft: `4px solid ${serverColorMap[serverName]?.accent}`,
+               borderRadius: '6px',
+               border: '1px solid rgba(0,0,0,0.05)',
+               overflow: 'hidden',
+               wordWrap: 'break-word',
+               wordBreak: 'break-word',
+               '&:hover': {
+                 backgroundColor: serverColorMap[serverName]?.bg,
+                 filter: 'brightness(0.98)',
+                 borderColor: serverColorMap[serverName]?.accent
+               },
+               '& > div': {
+                 maxWidth: '100%',
+                 overflow: 'hidden',
+                 wordWrap: 'break-word'
+               }
+             }}>
           <div style={getIndentForDiv(2)}>
             <span>"</span>
             <EditableText
@@ -445,16 +447,16 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
               isKey
             />
             <span>": {'{'}</span>
-            <Chip 
-              size="small" 
-              sx={{ 
-                height: '20px', 
+            <Chip
+              size="small"
+              sx={{
+                height: '20px',
                 backgroundColor: serverColorMap[serverName]?.accent,
                 color: 'white',
                 marginLeft: '8px',
-                '& .MuiChip-label': { padding: '0 8px', fontSize: '11px', fontWeight: 500 }
-              }} 
-              label={serverName} 
+                '& .MuiChip-label': {padding: '0 8px', fontSize: '11px', fontWeight: 500}
+              }}
+              label={serverName}
             />
             {!readOnly && (
               <>
@@ -476,7 +478,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
               </>
             )}
           </div>
-          
+
           {/* Command */}
           {serverConfig.command !== undefined && (
             <div style={getIndentForDiv(3)}>
@@ -496,7 +498,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
               <span>{Object.keys(serverConfig).indexOf('command') < Object.keys(serverConfig).length - 1 && ','}</span>
             </div>
           )}
-          
+
           {/* Args */}
           {serverConfig.args !== undefined && (
             <>
@@ -510,7 +512,8 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
                 )}
               </div>
               {serverConfig.args.map((arg: string, index: number) => (
-                <div key={index} style={getIndentForDiv(4)}>
+                <div key={index}
+                     style={getIndentForDiv(4)}>
                   <span>"</span>
                   <EditableText
                     value={arg}
@@ -532,7 +535,7 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
               </div>
             </>
           )}
-          
+
           {/* Env */}
           {serverConfig.env !== undefined && (
             <>
@@ -546,7 +549,8 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
                 )}
               </div>
               {Object.entries(serverConfig.env).map(([key, val]: [string, any], index, arr) => (
-                <div key={key} style={getIndentForDiv(4)}>
+                <div key={key}
+                     style={getIndentForDiv(4)}>
                   <span>"</span>
                   <EditableText
                     value={key}
@@ -575,17 +579,17 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
               </div>
             </>
           )}
-          
+
           <div style={getIndentForDiv(2)}>
             <span>{'}'}{serverIndex < Object.keys(config.mcpServers || {}).length - 1 && ','}</span>
           </div>
         </Box>
       ))}
-      
+
       <div style={getIndentForDiv(1)}>
         <span>{'}'}</span>
       </div>
-      
+
       {/* Global Shortcut */}
       {config.globalShortcut !== undefined && (
         <>
@@ -594,14 +598,14 @@ export const InteractiveJsonEditor: React.FC<InteractiveJsonEditorProps> = ({
             <span>"globalShortcut": "</span>
             <EditableText
               value={config.globalShortcut || ''}
-              onChange={(value) => updateConfig({ ...config, globalShortcut: value })}
+              onChange={(value) => updateConfig({...config, globalShortcut: value})}
               readOnly={readOnly}
             />
             <span>"</span>
           </div>
         </>
       )}
-      
+
       <div>{'}'}</div>
     </Box>
   );

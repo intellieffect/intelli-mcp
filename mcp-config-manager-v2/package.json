@@ -18,12 +18,13 @@
     "manager"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
-    "dev:main": "webpack --config webpack.main.config.ts --mode development --watch",
-    "dev:renderer": "webpack serve --config webpack.renderer.config.ts --mode development",
+    "dev": "cross-env NODE_ENV=development concurrently \"npm run dev:main\" \"npm run dev:renderer\" \"wait-on http://localhost:3000 && npm run dev:electron\"",
+    "dev:main": "webpack --config webpack.main.config.ts --watch",
+    "dev:renderer": "webpack serve --config webpack.renderer.config.ts",
+    "dev:electron": "cross-env NODE_ENV=development WEBPACK_DEV_SERVER=true electron .",
     "build": "npm run clean && npm run build:main && npm run build:renderer",
-    "build:main": "webpack --config webpack.main.config.ts --mode production",
-    "build:renderer": "webpack --config webpack.renderer.config.ts --mode production",
+    "build:main": "cross-env NODE_ENV=production webpack --config webpack.main.config.ts",
+    "build:renderer": "cross-env NODE_ENV=production webpack --config webpack.renderer.config.ts",
     "clean": "rimraf dist release",
     "start": "cross-env NODE_ENV=production electron .",
     "lint": "eslint src --ext .ts,.tsx --max-warnings 0",
@@ -53,6 +54,7 @@
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.2",
+    "wait-on": "^8.0.4",
     "webpack": "^5.92.1",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^5.0.4"

@@ -9,6 +9,7 @@ const webpack = require('webpack');
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 const config = {
+  mode: isDevelopment ? 'development' : 'production',
   target: 'web',
   entry: {
     renderer: './src/ui/index.tsx',
@@ -48,7 +49,7 @@ const config = {
       minify: !isDevelopment,
     }),
     new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
+      'process.env.WEBPACK_DEV_SERVER': JSON.stringify(process.env.WEBPACK_DEV_SERVER || 'false'),
     }),
   ],
   devServer: {
