@@ -35,6 +35,7 @@ interface FileManagementContextValue {
   saveActiveFile: (content: any) => Promise<void>;
   refreshFiles: () => Promise<void>;
   showAddFileDialog: () => Promise<void>;
+  updateFileName: (fileId: string, customName: string) => Promise<void>;
 }
 
 // Initial state
@@ -259,6 +260,24 @@ export const FileManagementProvider: React.FC<FileManagementProviderProps> = ({ 
     }
   }, [addFiles]);
 
+  // Update file name (custom display name)
+  const updateFileName = useCallback(async (fileId: string, customName: string) => {
+    try {
+      // If customName is empty, clear the custom name
+      if (!customName.trim()) {
+        await fileService.clearCustomName(fileId);
+      } else {
+        await fileService.setCustomName(fileId, customName.trim());
+      }
+      
+      // Refresh files to get updated data
+      await refreshFiles();
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: error as Error });
+      throw error;
+    }
+  }, [fileService, refreshFiles]);
+
   const contextValue: FileManagementContextValue = {
     state,
     addFiles,
@@ -267,6 +286,7 @@ export const FileManagementProvider: React.FC<FileManagementProviderProps> = ({ 
     saveActiveFile,
     refreshFiles,
     showAddFileDialog,
+    updateFileName,
   };
 
   return (

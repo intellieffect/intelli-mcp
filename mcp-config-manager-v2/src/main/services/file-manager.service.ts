@@ -14,16 +14,24 @@ export interface ManagedFile {
   id: string;
   path: string;
   name: string;
+  displayName?: string;           // Custom user-defined name
   type: 'claude' | 'mcp' | 'json';
   isDefault?: boolean;
   lastAccessed?: Date;
   lastModified?: Date;
+  customMetadata?: {              // Future extensibility
+    description?: string;
+    tags?: string[];
+    createdAt?: Date;
+  };
 }
 
 interface AppSettings {
   managedFilePaths: string[];
   lastActiveFileId?: string;
   fileIdMap: Record<string, string>; // path -> id mapping
+  fileCustomNames: Record<string, string>; // fileId -> custom name mapping
+  fileMetadata: Record<string, any>; // fileId -> metadata mapping
 }
 
 export class FileManagementService {
@@ -36,6 +44,8 @@ export class FileManagementService {
       defaults: {
         managedFilePaths: [],
         fileIdMap: {},
+        fileCustomNames: {},
+        fileMetadata: {},
       },
     });
 
@@ -172,6 +182,7 @@ export class FileManagementService {
   async listFiles(): Promise<ManagedFile[]> {
     const managedFilePaths = this.store.get('managedFilePaths', []);
     const fileIdMap = this.store.get('fileIdMap', {});
+    const fileCustomNames = this.store.get('fileCustomNames', {});
     const files: ManagedFile[] = [];
 
     for (const filePath of managedFilePaths) {
@@ -184,6 +195,7 @@ export class FileManagementService {
             id,
             path: filePath,
             name: path.basename(filePath),
+            displayName: fileCustomNames[id],
             type: this.getFileType(filePath),
             isDefault: filePath === this.defaultClaudePath,
             lastModified: stats.mtime,
@@ -247,8 +259,27 @@ export class FileManagementService {
     this.store.set('lastActiveFileId', fileId);
   }
 
+  // Custom name management methods
+  async setCustomName(fileId: string, customName: string): Promise<void> {
+    const fileCustomNames = this.store.get('fileCustomNames', {});
+    fileCustomNames[fileId] = customName;
+    this.store.set('fileCustomNames', fileCustomNames);
+  }
+
+  async getCustomName(fileId: string): Promise<string | undefined> {
+    const fileCustomNames = this.store.get('fileCustomNames', {});
+    return fileCustomNames[fileId];
+  }
+
+  async clearCustomName(fileId: string): Promise<void> {
+    const fileCustomNames = this.store.get('fileCustomNames', {});
+    delete fileCustomNames[fileId];
+    this.store.set('fileCustomNames', fileCustomNames);
+  }
+
   getFileById(fileId: string): ManagedFile | undefined {
     const fileIdMap = this.store.get('fileIdMap', {});
+    const fileCustomNames = this.store.get('fileCustomNames', {});
     const filePath = Object.entries(fileIdMap)
       .find(([_, id]) => id === fileId)?.[0];
     
@@ -258,6 +289,7 @@ export class FileManagementService {
       id: fileId,
       path: filePath,
       name: path.basename(filePath),
+      displayName: fileCustomNames[fileId],
       type: this.getFileType(filePath),
       isDefault: filePath === this.defaultClaudePath,
     };

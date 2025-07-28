@@ -7,10 +7,16 @@ export interface ManagedFile {
   id: string;
   path: string;
   name: string;
+  displayName?: string;           // Custom user-defined name
   type: 'claude' | 'mcp' | 'json';
   isDefault?: boolean;
   lastAccessed?: Date;
   lastModified?: Date;
+  customMetadata?: {              // Future extensibility
+    description?: string;
+    tags?: string[];
+    createdAt?: Date;
+  };
 }
 
 interface IPCResponse<T = any> {
@@ -103,6 +109,37 @@ export class FileManagementIPCService {
       throw new Error(response.error || 'Failed to show open dialog');
     }
     return response.data || [];
+  }
+
+  /**
+   * Set custom display name for a file
+   */
+  async setCustomName(fileId: string, customName: string): Promise<void> {
+    const response = await window.electronAPI.invoke('files:setCustomName', fileId, customName) as IPCResponse;
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to set custom name');
+    }
+  }
+
+  /**
+   * Get custom display name for a file
+   */
+  async getCustomName(fileId: string): Promise<string | undefined> {
+    const response = await window.electronAPI.invoke('files:getCustomName', fileId) as IPCResponse<string>;
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to get custom name');
+    }
+    return response.data;
+  }
+
+  /**
+   * Clear custom display name for a file (revert to default)
+   */
+  async clearCustomName(fileId: string): Promise<void> {
+    const response = await window.electronAPI.invoke('files:clearCustomName', fileId) as IPCResponse;
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to clear custom name');
+    }
   }
 }
 

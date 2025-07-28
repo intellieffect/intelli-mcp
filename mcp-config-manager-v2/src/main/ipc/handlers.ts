@@ -224,4 +224,35 @@ const setupFileManagementHandlers = (): void => {
       return { success: false, error: (error as Error).message };
     }
   });
+
+  // Custom name management handlers
+  ipcMain.handle('files:setCustomName', async (event, fileId: string, customName: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fileManager.setCustomName(fileId, customName);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to set custom name:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('files:getCustomName', async (event, fileId: string): Promise<{ success: boolean; data?: string; error?: string }> => {
+    try {
+      const customName = await fileManager.getCustomName(fileId);
+      return { success: true, data: customName };
+    } catch (error) {
+      logger.error('Failed to get custom name:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
+
+  ipcMain.handle('files:clearCustomName', async (event, fileId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fileManager.clearCustomName(fileId);
+      return { success: true };
+    } catch (error) {
+      logger.error('Failed to clear custom name:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  });
 };
